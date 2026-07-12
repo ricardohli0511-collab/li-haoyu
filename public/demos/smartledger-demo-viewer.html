@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLedger 帳智通 — Live Demo Viewer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Noto+Sans+HK:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --navy-980: #060B18; --navy-950: #0A0F1E; --navy-930: #0C1326;
+    --navy-900: #0F172A; --navy-850: #131D35; --navy-800: #1E293B;
+    --navy-700: #334155; --navy-600: #475569;
+    --gold-500: #C49A3C; --gold-450: #C8A040; --gold-400: #D4A853;
+    --gold-300: #E8C97A; --gold-200: #F5E6C8; --gold-100: #FBF6ED;
+    --white: #FFFFFF; --rose-500: #F43F5E; --emerald-500: #10B981;
+    --sky-500: #0EA5E9; --slate-100: #F1F5F9; --slate-200: #E2E8F0;
+    --white-03: rgba(255,255,255,0.03); --white-04: rgba(255,255,255,0.04);
+    --white-05: rgba(255,255,255,0.05); --white-06: rgba(255,255,255,0.06);
+    --white-08: rgba(255,255,255,0.08); --white-10: rgba(255,255,255,0.10);
+    --white-15: rgba(255,255,255,0.15); --white-25: rgba(255,255,255,0.25);
+    --white-40: rgba(255,255,255,0.40); --white-50: rgba(255,255,255,0.50);
+    --white-55: rgba(255,255,255,0.55); --white-60: rgba(255,255,255,0.60);
+    --white-65: rgba(255,255,255,0.65); --white-80: rgba(255,255,255,0.80);
+    --gold-glow: rgba(212,168,83,0.12); --gold-glow-strong: rgba(212,168,83,0.18);
+    --gold-line: rgba(212,168,83,0.25);
+    --font-display: 'DM Sans', system-ui, sans-serif;
+    --font-body: 'Noto Sans HK', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { font-size: 16px; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--navy-980);
+    color: var(--white);
+    overflow: hidden;
+    height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══════════════════════════════════════
+     DUAL PANEL LAYOUT
+     ═══════════════════════════════════════ */
+  .app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ── LEFT: LANDING ── */
+  .landing-panel {
+    width: 40%;
+    min-width: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    scroll-behavior: smooth;
+    border-right: 1px solid var(--gold-line);
+    background: var(--navy-950);
+  }
+  .landing-panel::-webkit-scrollbar { width: 4px; }
+  .landing-panel::-webkit-scrollbar-track { background: transparent; }
+  .landing-panel::-webkit-scrollbar-thumb { background: var(--white-10); border-radius: 2px; }
+  .landing-panel::-webkit-scrollbar-thumb:hover { background: var(--gold-line); }
+
+  /* ── RIGHT: APP VIEWER ── */
+  .app-panel {
+    width: 60%;
+    height: 100vh;
+    background: var(--navy-980);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    position: relative;
+  }
+
+  /* Browser Window Simulation */
+  .browser-window {
+    width: 98%;
+    height: 98%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--white);
+    box-shadow: 0 0 60px rgba(0,0,0,0.5), 0 0 120px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+  }
+  .browser-toolbar {
+    height: 40px;
+    background: #1C1C1E;
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    gap: 8px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .browser-dots {
+    display: flex;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+  .browser-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .bd-red { background: #FF5F56; }
+  .bd-yellow { background: #FFBD2E; }
+  .bd-green { background: #27C93F; }
+  .browser-address {
+    flex: 1;
+    height: 24px;
+    background: #2C2C2E;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    margin: 0 20px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: #8E8E93;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .browser-address .addr-prefix { color: #30D158; }
+  .browser-address .addr-path { color: var(--white-80); }
+  .browser-iframe-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--white);
+  }
+  .browser-iframe-wrap iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+  }
+
+  /* App Page Label */
+  .app-page-label {
+    position: absolute;
+    bottom: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10,15,30,0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--gold-line);
+    color: var(--gold-400);
+    padding: 4px 14px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    z-index: 5;
+    transition: opacity 0.3s ease;
+  }
+
+  /* Active page indicator light */
+  .page-indicator {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--emerald-500);
+    box-shadow: 0 0 8px rgba(16,185,129,0.5);
+    z-index: 5;
+    animation: blink 1.5s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ═══════════════════════════════════════
+     LANDING STYLES (adapted for narrow panel)
+     ═══════════════════════════════════════ */
+  .section-inner {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: clamp(40px, 8vh, 80px) clamp(16px, 3vw, 36px);
+    position: relative;
+    z-index: 1;
+  }
+  .section-label {
+    font-size: 0.65rem; font-weight: 700;
+    letter-spacing: 0.25em; text-transform: uppercase;
+    color: var(--gold-400); margin-bottom: 0.7rem; text-align: center;
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(1.3rem, 2.5vw, 2rem); font-weight: 700;
+    letter-spacing: -0.025em; line-height: 1.15; text-align: center;
+  }
+  .section-lead {
+    font-size: 0.78rem; color: var(--white-50);
+    max-width: 420px; margin: 0.6rem auto 0;
+    text-align: center; line-height: 1.7;
+  }
+
+  .gold-divider {
+    width: 60px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold-400), var(--gold-300), var(--gold-400), transparent);
+    border-radius: 9999px; margin: 0 auto 1.5rem; position: relative;
+  }
+  .gold-divider::after {
+    content: ''; position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 5px; height: 5px;
+    background: var(--gold-400); border-radius: 50%;
+    box-shadow: 0 0 10px var(--gold-glow-strong);
+  }
+
+  /* Scroll reveal */
+  [data-reveal] {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  [data-reveal].is-revealed { opacity: 1; transform: translateY(0); }
+  [data-stagger] { opacity: 0; transform: translateY(24px); }
+  [data-stagger].stagger-in {
+    animation: staggerUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: calc(var(--stagger-i, 0) * 90ms);
+  }
+  @keyframes staggerUp { to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeInScale { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: scale(1); } }
+  @keyframes slideInLeft { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes slideInRight { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes breathe { 0%,100% { opacity: 0.35; transform: scale(1); } 50% { opacity: 0.65; transform: scale(1.08); } }
+  @keyframes pulseGlow { 0%,100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.05); } }
+  @keyframes rippleOut { 0% { r: 6; opacity: 0.5; } 100% { r: 28; opacity: 0; } }
+  @keyframes drawPath { to { stroke-dashoffset: 0; } }
+  @keyframes floatParticle {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    10% { opacity: 0.7; } 90% { opacity: 0.7; }
+    100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
+  }
+  .hero-animate { animation: fadeInScale 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+  /* Background effects */
+  .bg-grid {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.025;
+    background-image: linear-gradient(rgba(255,255,255,0.25) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.25) 1px, transparent 1px);
+    background-size: 50px 50px;
+  }
+  .bg-glow {
+    position: absolute; border-radius: 50%; pointer-events: none;
+  }
+  .bg-glow-tl {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(212,168,83,0.1), transparent 60%);
+    top: -200px; left: -200px; animation: breathe 8s ease-in-out infinite;
+  }
+  .bg-glow-br {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(14,165,233,0.06), transparent 60%);
+    bottom: -150px; right: -150px; animation: breathe 10s ease-in-out infinite 2s;
+  }
+  .bg-glow-center {
+    width: 800px; height: 800px;
+    background: radial-gradient(circle, rgba(212,168,83,0.05), transparent 55%);
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    animation: breathe 9s ease-in-out infinite 1s;
+  }
+  .bg-noise {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.02; filter: url(#noise);
+    background: var(--navy-950); mix-blend-mode: overlay;
+  }
+  .bg-dots-warm {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.04;
+    background-image: radial-gradient(circle at 20% 25%, var(--gold-400) 1px, transparent 1px),
+                      radial-gradient(circle at 70% 55%, var(--gold-400) 1px, transparent 1px);
+    background-size: 70px 70px, 55px 55px;
+  }
+
+  /* Transition bands */
+  .section-transition { height: 60px; position: relative; z-index: 1; }
+  .section-transition.dark-to-light {
+    background: linear-gradient(180deg, var(--navy-950) 0%, var(--navy-900) 25%, #F8F6F2 100%);
+  }
+  .section-transition.light-to-dark {
+    background: linear-gradient(180deg, #F8F6F2 0%, var(--navy-900) 70%, var(--navy-900) 100%);
+  }
+  .section-transition.dark-to-dark {
+    background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-850) 100%);
+  }
+  .transition-gold-line {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    width: 80px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-400), transparent);
+  }
+
+  /* ═══════════════════════════════════════
+     SECTION 1 — HERO (narrow)
+     ═══════════════════════════════════════ */
+  .s1-hero {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center;
+    position: relative; overflow: hidden;
+    background: linear-gradient(180deg, var(--navy-980) 0%, var(--navy-950) 60%, var(--navy-900) 100%);
+  }
+  .hero-particles { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+  .hero-particle {
+    position: absolute; width: 2px; height: 2px;
+    background: var(--gold-400); border-radius: 50%;
+    animation: floatParticle linear infinite;
+  }
+  .hero-content { position: relative; z-index: 2; max-width: 500px; padding: 1.5rem; }
+  .hero-eyebrow {
+    font-size: 0.6rem; font-weight: 600; letter-spacing: 0.32em;
+    text-transform: uppercase; color: var(--gold-400); margin-bottom: 1rem; opacity: 0.85;
+  }
+  .hero-h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.8rem); font-weight: 700;
+    line-height: 1.06; letter-spacing: -0.04em; margin-bottom: 1rem;
+    text-shadow: 0 0 40px rgba(212,168,83,0.15);
+  }
+  .hero-h1 .gold { color: var(--gold-400); }
+  .hero-sub {
+    font-size: 0.85rem; color: var(--white-55); max-width: 400px;
+    margin: 0 auto 2rem; line-height: 1.75;
+  }
+  .hero-tags {
+    display: flex; gap: 0.5rem; justify-content: center;
+    flex-wrap: wrap; margin-bottom: 1.8rem;
+  }
+  .hero-tag {
+    padding: 0.3rem 0.8rem; border-radius: 9999px;
+    font-size: 0.65rem; font-weight: 500;
+    background: var(--white-04); border: 1px solid var(--white-08);
+    color: var(--white-65); transition: all 0.3s ease;
+  }
+  .hero-tag:hover { border-color: var(--gold-line); color: var(--gold-300); }
+  .hero-stats {
+    display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap; margin-top: 0.3rem;
+  }
+  .hero-stat { text-align: center; }
+  .hero-stat-num {
+    font-family: var(--font-display); font-size: 1.8rem;
+    font-weight: 700; color: var(--gold-400); line-height: 1;
+    text-shadow: 0 0 20px rgba(212,168,83,0.15);
+  }
+  .hero-stat-label { font-size: 0.65rem; color: var(--white-40); margin-top: 0.3rem; letter-spacing: 0.04em; }
+  .hero-footer {
+    position: absolute; bottom: 2rem; left: 0; right: 0;
+    text-align: center; z-index: 2;
+    font-size: 0.6rem; color: var(--white-25); letter-spacing: 0.1em;
+    display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+  }
+  .hero-footer-line {
+    width: 60px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+  }
+
+  /* ═══════════════════════════════════════
+     SECTION 2 — PAIN POINTS (narrow)
+     ═══════════════════════════════════════ */
+  .s2-pain {
+    position: relative;
+    background: linear-gradient(180deg, #F8F6F2 0%, var(--slate-100) 40%, #F8F6F2 100%);
+    color: var(--navy-800); min-height: 100vh;
+  }
+  .s2-pain .section-lead { color: var(--navy-600); }
+  .s2-pain .section-title { color: var(--navy-900); }
+  .pain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem; max-width: 100%;
+    margin: 2rem auto 0;
+  }
+  .pain-card {
+    background: rgba(255,255,255,0.78);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-radius: 1rem; padding: 1.3rem 1rem;
+    border: 1px solid rgba(212,168,83,0.08);
+    position: relative; overflow: hidden;
+    transition: all 0.35s ease;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.02);
+  }
+  .pain-card:hover {
+    border-color: rgba(212,168,83,0.25);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.05);
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.9);
+  }
+  .pain-badge {
+    position: absolute; top: 0.7rem; right: 0.7rem;
+    background: rgba(244,63,94,0.07); color: var(--rose-500);
+    font-size: 0.55rem; font-weight: 700; padding: 0.2rem 0.6rem;
+    border-radius: 9999px; letter-spacing: 0.06em;
+    border: 1px solid rgba(244,63,94,0.12);
+  }
+  .pain-icon {
+    width: 2.4rem; height: 2.4rem; border-radius: 0.7rem;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 0.9rem; font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+  }
+  .pi-1 { background: linear-gradient(135deg, #EEF2FF, #E0E7FF); }
+  .pi-2 { background: linear-gradient(135deg, #FFF7ED, #FFEDD5); }
+  .pi-3 { background: linear-gradient(135deg, #ECFDF5, #D1FAE5); }
+  .pi-4 { background: linear-gradient(135deg, #FDF2F8, #FCE7F3); }
+  .pain-card h3 {
+    font-family: var(--font-display); font-size: 0.9rem;
+    font-weight: 600; margin-bottom: 0.35rem;
+    color: var(--navy-900); letter-spacing: -0.01em;
+  }
+  .pain-card p { font-size: 0.72rem; color: var(--navy-600); line-height: 1.6; }
+
+  /* ═══════════════════════════════════════
+     SECTION 3 — FEATURES (narrow)
+     ═══════════════════════════════════════ */
+  .s3-features {
+    position: relative; background: var(--navy-900);
+    overflow: hidden; min-height: 100vh;
+  }
+  .feature-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 0.7rem; max-width: 100%; margin: 2rem auto 0;
+  }
+  .feature-card {
+    padding: 1.3rem; border-radius: 0.9rem;
+    background: var(--white-03);
+    border: 1px solid var(--white-06);
+    transition: all 0.35s ease; position: relative; overflow: hidden;
+  }
+  .feature-card:first-child { grid-column: span 2; }
+  .feature-card:hover {
+    background: var(--white-06); border-color: rgba(212,168,83,0.2);
+    transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+  .feature-card::after {
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(212,168,83,0.3), transparent);
+    opacity: 0; transition: opacity 0.35s ease;
+  }
+  .feature-card:hover::after { opacity: 1; }
+  .feature-num-wrap { position: relative; margin-bottom: 0.7rem; }
+  .feature-num {
+    font-family: var(--font-display); font-size: 0.62rem; font-weight: 700;
+    color: var(--gold-400); letter-spacing: 0.08em; position: relative; z-index: 1;
+  }
+  .feature-num-watermark {
+    position: absolute; top: -0.6rem; right: 0;
+    font-family: var(--font-display); font-size: 2.5rem; font-weight: 700;
+    color: var(--white-03); line-height: 1;
+    user-select: none; pointer-events: none; z-index: 0;
+  }
+  .feature-card h3 {
+    font-family: var(--font-display); font-size: 0.9rem; font-weight: 600;
+    margin-bottom: 0.35rem; color: var(--white); letter-spacing: -0.01em;
+  }
+  .feature-card p { font-size: 0.72rem; color: var(--white-50); line-height: 1.6; }
+
+  /* ═══════════════════════════════════════
+     SECTION 4 — TECH (narrow)
+     ═══════════════════════════════════════ */
+  .s4-tech {
+    position: relative; min-height: 100vh;
+    background: linear-gradient(180deg, var(--navy-850) 0%, var(--navy-900) 100%);
+    overflow: hidden;
+  }
+  .kg-wrapper {
+    display: flex; flex-direction: column; gap: 1rem;
+    max-width: 100%; margin: 2rem auto 0;
+    align-items: stretch;
+  }
+  .kg-diagram {
+    background: var(--white-03); border: 1px solid var(--white-08);
+    border-radius: 1rem; padding: 1.5rem 1rem;
+    position: relative; overflow: hidden;
+  }
+  .kg-diagram svg { width: 100%; height: auto; display: block; }
+  .kg-node-center { fill: rgba(212,168,83,0.1); stroke: rgba(212,168,83,0.35); stroke-width: 1.5; }
+  .kg-node-circle { fill: rgba(255,255,255,0.04); stroke: rgba(255,255,255,0.15); stroke-width: 1; transition: all 0.35s ease; }
+  .kg-node-circle:hover { stroke: rgba(212,168,83,0.4); fill: rgba(212,168,83,0.06); }
+  .kg-ripple { fill: none; stroke: rgba(212,168,83,0.2); stroke-width: 0.8; animation: rippleOut 2s ease-out infinite; }
+  .kg-ripple:nth-child(2) { animation-delay: 0.6s; }
+  .kg-ripple:nth-child(3) { animation-delay: 1.2s; }
+  .kg-line { fill: none; stroke: rgba(212,168,83,0.18); stroke-width: 1.2; stroke-dasharray: 300; stroke-dashoffset: 300; }
+  .kg-diagram.is-revealed .kg-line { animation: drawPath 1.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+  .kg-diagram.is-revealed .kg-line:nth-child(1) { animation-delay: 0.1s; }
+  .kg-diagram.is-revealed .kg-line:nth-child(2) { animation-delay: 0.3s; }
+  .kg-diagram.is-revealed .kg-line:nth-child(3) { animation-delay: 0.5s; }
+  .kg-diagram.is-revealed .kg-line:nth-child(4) { animation-delay: 0.7s; }
+
+  .canto-card {
+    background: linear-gradient(180deg, #0D1117 0%, #111820 100%);
+    border: 1px solid rgba(212,168,83,0.15); border-radius: 1rem;
+    padding: 1.3rem; position: relative; overflow: hidden;
+  }
+  .canto-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-line), transparent);
+  }
+  .canto-dots { display: flex; gap: 5px; margin-bottom: 0.8rem; }
+  .canto-dots span { width: 7px; height: 7px; border-radius: 50%; }
+  .canto-dots span:nth-child(1) { background: #FF5F56; }
+  .canto-dots span:nth-child(2) { background: #FFBD2E; }
+  .canto-dots span:nth-child(3) { background: #27C93F; }
+  .canto-input {
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem;
+    color: var(--emerald-500); margin-bottom: 1rem;
+    padding: 0.6rem 0.8rem; min-height: 28px;
+    background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.12);
+    border-radius: 0.5rem; line-height: 1.4;
+  }
+  .canto-result { display: flex; flex-direction: column; gap: 0.5rem; }
+  .canto-field {
+    display: flex; justify-content: space-between;
+    align-items: center; font-size: 0.72rem;
+  }
+  .canto-field .key { color: var(--white-30); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.65rem; }
+  .canto-field .val { color: var(--gold-300); font-weight: 600; }
+  .canto-note { margin-top: 0.7rem; font-size: 0.65rem; color: var(--white-25); line-height: 1.5; border-top: 1px solid var(--white-05); padding-top: 0.6rem; }
+  .deepseek-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    padding: 0.4rem 0.9rem; border-radius: 9999px;
+    font-size: 0.62rem; font-weight: 600; color: var(--gold-400);
+    background: var(--white-04); border: 1px solid rgba(212,168,83,0.15);
+    margin-top: 0.8rem; animation: pulseGlow 3s ease-in-out infinite;
+  }
+  .rag-flow {
+    display: flex; align-items: center; gap: 0.35rem;
+    flex-wrap: wrap; margin-top: 1rem; font-size: 0.65rem;
+  }
+  .rag-step { padding: 0.3rem 0.6rem; border-radius: 0.4rem; background: var(--white-04); color: var(--white-55); }
+  .rag-step.highlight { background: rgba(212,168,83,0.1); color: var(--gold-400); font-weight: 600; border: 1px solid rgba(212,168,83,0.12); }
+  .rag-arrow { color: var(--white-25); }
+
+  /* ═══════════════════════════════════════
+     SECTION 5 — COMPARE (narrow)
+     ═══════════════════════════════════════ */
+  .s5-compare {
+    position: relative; min-height: 100vh;
+    background: linear-gradient(180deg, #F8F6F2 0%, var(--slate-100) 100%);
+    color: var(--navy-800);
+  }
+  .s5-compare .section-lead { color: var(--navy-600); }
+  .s5-compare .section-title { color: var(--navy-900); }
+  .compare-wrap { max-width: 100%; margin: 2rem auto 0; display: flex; flex-direction: column; gap: 0.7rem; }
+  .compare-row {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.8rem 1rem;
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(6px);
+    border-radius: 0.7rem; border: 1px solid var(--slate-200);
+    transition: all 0.3s ease;
+  }
+  .compare-row:hover { background: rgba(255,255,255,0.82); border-color: rgba(212,168,83,0.18); }
+  .compare-label { flex: 2; font-size: 0.78rem; font-weight: 500; color: var(--navy-800); }
+  .compare-before {
+    flex: 1.5; text-align: center; font-size: 0.7rem;
+    color: var(--rose-500); font-weight: 600;
+    padding: 0.5rem 0.5rem; background: rgba(244,63,94,0.04);
+    border: 1px solid rgba(244,63,94,0.1); border-radius: 0.4rem;
+  }
+  .compare-arrow-sym {
+    font-size: 0.9rem; color: var(--gold-400);
+    flex: 0.2; text-align: center; font-weight: 600;
+  }
+  .compare-after {
+    flex: 1.5; text-align: center; font-size: 0.7rem;
+    color: var(--emerald-500); font-weight: 600;
+    padding: 0.5rem 0.5rem; background: rgba(16,185,129,0.04);
+    border: 1px solid rgba(16,185,129,0.1); border-radius: 0.4rem;
+  }
+  .compare-mult {
+    flex: 0.8; text-align: center; font-family: var(--font-display);
+    font-size: 1rem; font-weight: 700; color: var(--gold-400);
+    background: rgba(212,168,83,0.06); border: 1px solid rgba(212,168,83,0.1);
+    padding: 0.5rem 0.3rem; border-radius: 0.4rem;
+  }
+  .market-stats { text-align: center; margin-top: 3rem; position: relative; }
+  .market-num {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 6vw, 3.8rem); font-weight: 700;
+    color: var(--gold-400); line-height: 1; letter-spacing: -0.04em;
+    text-shadow: 0 0 30px rgba(212,168,83,0.12);
+  }
+  .market-sub { font-size: 0.8rem; color: var(--navy-600); margin-top: 0.4rem; }
+  .market-tags { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 1.2rem; }
+  .market-tag {
+    font-size: 0.65rem; font-weight: 500;
+    padding: 0.3rem 0.8rem; border-radius: 9999px;
+    background: rgba(212,168,83,0.05); color: var(--gold-500);
+    border: 1px solid rgba(212,168,83,0.12); cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .market-tag:hover { background: var(--gold-400); color: var(--navy-950); border-color: var(--gold-400); }
+
+  /* ═══════════════════════════════════════
+     SECTION 6 — END (narrow)
+     ═══════════════════════════════════════ */
+  .s6-end {
+    min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    text-align: center; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, var(--navy-900) 0%, var(--navy-980) 100%);
+  }
+  .end-glow {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(212,168,83,0.06), transparent 60%);
+    border-radius: 50%; animation: breathe 6s ease-in-out infinite; pointer-events: none;
+  }
+  .end-content { position: relative; z-index: 2; max-width: 480px; padding: 1.5rem; }
+  .end-logo {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4vw, 3rem); font-weight: 700;
+    letter-spacing: -0.03em; margin-bottom: 0.8rem; line-height: 1.15;
+  }
+  .end-logo .gold { color: var(--gold-400); }
+  .end-tagline { font-size: clamp(0.85rem, 1.8vw, 1.1rem); color: var(--white-55); margin-bottom: 2rem; line-height: 1.5; }
+  .end-info {
+    display: inline-block; padding: 1.2rem 1.8rem;
+    border: 1px solid rgba(212,168,83,0.15); border-radius: 1rem;
+    background: rgba(255,255,255,0.02); backdrop-filter: blur(6px);
+    font-size: 0.65rem; color: var(--white-30); line-height: 1.9; text-align: left;
+  }
+  .end-info .info-label { color: var(--gold-400); font-weight: 600; font-size: 0.6rem; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.4rem; }
+  .end-info .info-row { display: flex; gap: 0.6rem; align-items: flex-start; }
+  .end-info .info-icon { color: var(--gold-400); flex-shrink: 0; margin-top: 0.1rem; }
+  .end-decoration { margin-top: 2rem; width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold-400), transparent); margin-left: auto; margin-right: auto; }
+
+  /* ── SCROLL NEXT ── */
+  .scroll-next {
+    position: absolute; bottom: 1rem; left: 50%; transform: translateX(-50%);
+    width: 34px; height: 34px; border-radius: 50%;
+    background: rgba(10,15,30,0.4); backdrop-filter: blur(8px);
+    border: 1px solid var(--gold-line); color: var(--gold-400);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 10; transition: all 0.3s ease;
+    animation: breathe 3s ease-in-out infinite;
+  }
+  .scroll-next:hover {
+    background: rgba(212,168,83,0.12); border-color: var(--gold-400);
+    transform: translateX(-50%) translateY(2px);
+    box-shadow: 0 0 16px rgba(212,168,83,0.15);
+  }
+  .scroll-next svg { width: 16px; height: 16px; }
+  .s2-pain .scroll-next,
+  .s5-compare .scroll-next { background: rgba(255,255,255,0.45); border-color: rgba(212,168,83,0.25); }
+
+  /* ═══════════════════════════════════════
+     MOBILE: hide app panel
+     ═══════════════════════════════════════ */
+  @media (max-width: 900px) {
+    .app-panel { display: none; }
+    .landing-panel { width: 100%; }
+    .section-inner { padding: clamp(50px, 8vh, 100px) clamp(20px, 5vw, 40px); }
+    .hero-h1 { font-size: clamp(2rem, 6vw, 3rem); }
+    .pain-grid { grid-template-columns: 1fr; }
+    .feature-grid { grid-template-columns: 1fr; }
+    .feature-card:first-child { grid-column: span 1; }
+    .compare-row { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+    .compare-arrow-sym { transform: rotate(90deg); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    [data-reveal], [data-stagger], .hero-animate { opacity: 1; transform: none; animation: none !important; transition: none !important; }
+    .hero-particles { display: none; }
+    .bg-glow, .end-glow { animation: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<svg style="position:absolute;width:0;height:0" aria-hidden="true">
+  <defs>
+    <filter id="noise">
+      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" />
+      <feColorMatrix type="saturate" values="0" />
+      <feBlend in="SourceGraphic" mode="multiply" />
+    </filter>
+  </defs>
+</svg>
+
+<div class="app-container">
+
+<!-- ══════════════════════════════════════════
+     LEFT PANEL — LANDING
+     ══════════════════════════════════════════ -->
+<div class="landing-panel" id="landingPanel">
+
+  <!-- S1 Hero -->
+  <section class="s1-hero" id="s1">
+    <div class="bg-grid"></div>
+    <div class="bg-glow bg-glow-tl"></div>
+    <div class="bg-glow bg-glow-br"></div>
+    <div class="bg-noise"></div>
+    <div class="hero-particles" id="heroParticles"></div>
+    <div class="hero-content hero-animate">
+      <p class="hero-eyebrow">NOVA 2026 · Track 3: Business Efficiency</p>
+      <h1 class="hero-h1">SmartLedger<br><span class="gold">帳智通</span></h1>
+      <p class="hero-sub">AI 驅動的多語言智能記帳平台 —— 為大灣區中小企業而設，讓 AI 處理發票識別、跨語言分類、自動對賬，您只需專注業務增長</p>
+      <div class="hero-tags">
+        <span class="hero-tag">#學習工作</span>
+        <span class="hero-tag">#社會公益</span>
+        <span class="hero-tag">#騰訊混元 AI</span>
+        <span class="hero-tag">#大灣區</span>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat"><div class="hero-stat-num" data-counter data-target="80" data-suffix=" 萬+">0</div><div class="hero-stat-label">大灣區中小企業市場</div></div>
+        <div class="hero-stat"><div class="hero-stat-num" data-counter data-target="10" data-suffix="s">0</div><div class="hero-stat-label">AI 識別一張發票</div></div>
+        <div class="hero-stat"><div class="hero-stat-num" data-counter data-target="4" data-suffix="">0</div><div class="hero-stat-label">語言混合處理</div></div>
+      </div>
+    </div>
+    <div class="hero-footer" data-reveal>
+      <div class="hero-footer-line"></div>
+      <span>HKUST Business School CTBE × Tencent Research Institute</span>
+      <div class="hero-footer-line"></div>
+    </div>
+    <div class="scroll-next" data-target="s2" title="下一頁"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <div class="section-transition dark-to-light"><div class="transition-gold-line"></div></div>
+
+  <!-- S2 Pain -->
+  <section class="s2-pain" id="s2">
+    <div class="bg-dots-warm"></div>
+    <div class="section-inner" data-reveal>
+      <p class="section-label">痛點發現</p>
+      <h2 class="section-title">大灣區中小企業的記賬噩夢</h2>
+      <p class="section-lead">走訪香港數十家中小企業後，我們發現了一個被忽視的普遍痛點</p>
+      <div class="gold-divider"></div>
+      <div class="pain-grid">
+        <div class="pain-card" data-stagger data-slide="left" style="--stagger-i:0">
+          <div class="pain-badge">痛點 01</div>
+          <div class="pain-icon pi-1"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+          <h3>多語言發票混雜</h3>
+          <p>英文、繁體中文、簡體中文、粵語口語混在一起，傳統軟件無法統一處理，手動分類極其耗時。</p>
+        </div>
+        <div class="pain-card" data-stagger data-slide="right" style="--stagger-i:1">
+          <div class="pain-badge">痛點 02</div>
+          <div class="pain-icon pi-2"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <h3>多幣種手工換算</h3>
+          <p>跨境業務涉及 HKD / RMB / USD，每次記賬都要查匯率、手工換算，一個小差錯就可能導致賬目不符。</p>
+        </div>
+        <div class="pain-card" data-stagger data-slide="left" style="--stagger-i:2">
+          <div class="pain-badge">痛點 03</div>
+          <div class="pain-icon pi-3"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+          <h3>請不起全職會計</h3>
+          <p>初創企業和小微商家月結會計費用數千港元，許多老闆只能自己用 Excel 記賬，錯誤率高且不符報稅要求。</p>
+        </div>
+        <div class="pain-card" data-stagger data-slide="right" style="--stagger-i:3">
+          <div class="pain-badge">痛點 04</div>
+          <div class="pain-icon pi-4"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 10 10h-10V2z"/></svg></div>
+          <h3>AI 不懂粵語財務</h3>
+          <p>現有 AI 工具能識別英文發票，但面對「找數」「埋單」「出糧」這類粵語財務用語時完全無能為力。</p>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-next" data-target="s3" title="下一頁"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <div class="section-transition light-to-dark"></div>
+
+  <!-- S3 Features -->
+  <section class="s3-features" id="s3">
+    <div class="bg-glow bg-glow-center"></div>
+    <div class="section-inner" data-reveal>
+      <p class="section-label">解決方案</p>
+      <h2 class="section-title" style="color:var(--white)">六大核心功能模塊</h2>
+      <p class="section-lead">一個平台，覆蓋從發票錄入到報表導出的完整記賬流程</p>
+      <div class="gold-divider"></div>
+      <div class="feature-grid">
+        <div class="feature-card" data-stagger style="--stagger-i:0">
+          <div class="feature-num-wrap"><p class="feature-num">01 · 核心</p><span class="feature-num-watermark">01</span></div>
+          <h3>AI 自動識別</h3>
+          <p>拍照上傳發票，騰訊混元 LLM 自動提取日期、金額、交易對手、科目分類，並給出 92% 置信度評分。</p>
+        </div>
+        <div class="feature-card" data-stagger style="--stagger-i:1">
+          <div class="feature-num-wrap"><p class="feature-num">02 · 獨特</p><span class="feature-num-watermark">02</span></div>
+          <h3>三語混合處理</h3>
+          <p>英文、繁體中文、簡體中文、粵語口語 —— 一套 AI Pipeline 統一處理，知識圖譜實現跨語言科目映射。</p>
+        </div>
+        <div class="feature-card" data-stagger style="--stagger-i:2">
+          <div class="feature-num-wrap"><p class="feature-num">03 · 可靠</p><span class="feature-num-watermark">03</span></div>
+          <h3>智能審核隊列</h3>
+          <p>AI 提取結果進入待審核隊列，支持人工確認、拒絕、編輯。低置信度交易自動高亮預警。</p>
+        </div>
+        <div class="feature-card" data-stagger style="--stagger-i:3">
+          <div class="feature-num-wrap"><p class="feature-num">04 · 即時</p><span class="feature-num-watermark">04</span></div>
+          <h3>一鍵財務報表</h3>
+          <p>損益表、試算平衡表、現金流量表、AR/AP 賬齡 —— 基於已確認數據即時生成。</p>
+        </div>
+        <div class="feature-card" data-stagger style="--stagger-i:4">
+          <div class="feature-num-wrap"><p class="feature-num">05 · 自動</p><span class="feature-num-watermark">05</span></div>
+          <h3>銀行自動對賬</h3>
+          <p>導入銀行對賬單，AI 按金額+日期自動匹配賬簿交易，差異一目了然。</p>
+        </div>
+        <div class="feature-card" data-stagger style="--stagger-i:5">
+          <div class="feature-num-wrap"><p class="feature-num">06 · 兼容</p><span class="feature-num-watermark">06</span></div>
+          <h3>多格式生態導出</h3>
+          <p>支持導出 Xero CSV / QuickBooks / MYOB 等主流會計軟件格式，與現有財務生態無縫對接。</p>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-next" data-target="s4" title="下一頁"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <div class="section-transition dark-to-dark"></div>
+
+  <!-- S4 Tech -->
+  <section class="s4-tech" id="s4">
+    <div class="section-inner" data-reveal>
+      <p class="section-label">技術亮點</p>
+      <h2 class="section-title" style="color:var(--white)">AI 如何讀懂大灣區的發票？</h2>
+      <p class="section-lead">我們的秘密武器——跨語言知識圖譜</p>
+      <div class="gold-divider"></div>
+      <div class="kg-wrapper">
+        <div class="kg-diagram">
+          <svg viewBox="0 0 400 220" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="200" cy="110" r="36" class="kg-node-center"/>
+            <circle cx="200" cy="110" r="36" class="kg-ripple"/>
+            <circle cx="200" cy="110" r="36" class="kg-ripple"/>
+            <circle cx="200" cy="110" r="36" class="kg-ripple"/>
+            <text x="200" y="107" text-anchor="middle" fill="#D4A853" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">科目映射</text>
+            <text x="200" y="119" text-anchor="middle" fill="#D4A853" font-size="8" font-weight="600" font-family="Noto Sans HK,sans-serif">Category</text>
+            <path d="M162 92 C120 70 60 50 42 55" class="kg-line"/>
+            <path d="M238 92 C270 70 340 50 358 55" class="kg-line"/>
+            <path d="M162 130 C120 150 60 170 42 165" class="kg-line"/>
+            <path d="M238 130 C270 150 340 170 358 165" class="kg-line"/>
+            <circle cx="28" cy="50" r="20" class="kg-node-circle"/>
+            <text x="28" y="53" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="7" font-weight="600" font-family="DM Sans,sans-serif">Professional</text>
+            <circle cx="372" cy="50" r="20" class="kg-node-circle"/>
+            <text x="372" y="53" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="7" font-weight="600" font-family="Noto Sans HK,sans-serif">律師費</text>
+            <circle cx="28" cy="170" r="20" class="kg-node-circle"/>
+            <text x="28" y="173" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="7" font-weight="600" font-family="Noto Sans HK,sans-serif">律师费</text>
+            <circle cx="372" cy="170" r="20" class="kg-node-circle"/>
+            <text x="372" y="173" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="7" font-weight="600" font-family="Noto Sans HK,sans-serif">專業費用</text>
+          </svg>
+          <div class="rag-flow">
+            <span class="rag-step">📄 文本</span><span class="rag-arrow">→</span>
+            <span class="rag-step">🔍 匹配</span><span class="rag-arrow">→</span>
+            <span class="rag-step highlight">🧠 KG+LLM</span><span class="rag-arrow">→</span>
+            <span class="rag-step">✅ 科目</span>
+          </div>
+          <div class="deepseek-badge">Powered by 騰訊混元 LLM + 跨語言會計本體</div>
+        </div>
+        <div class="canto-card" data-stagger style="--stagger-i:2">
+          <div class="canto-dots"><span></span><span></span><span></span></div>
+          <div class="canto-input" id="cantoTypewriter"></div>
+          <div class="canto-result">
+            <div class="canto-field"><span class="key">金額</span><span class="val">HK$ 5,000</span></div>
+            <div class="canto-field"><span class="key">科目</span><span class="val">Professional Fees</span></div>
+            <div class="canto-field"><span class="key">置信度</span><span class="val">89%</span></div>
+          </div>
+          <p class="canto-note">現有任何會計軟件都看不懂這句話——SmartLedger 是第一個能理解粵語財務口語的 AI 記賬平台。</p>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-next" data-target="s5" title="下一頁"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <div class="section-transition dark-to-light"></div>
+
+  <!-- S5 Compare -->
+  <section class="s5-compare" id="s5">
+    <div class="bg-dots-warm"></div>
+    <div class="section-inner" data-reveal>
+      <p class="section-label">效率對比</p>
+      <h2 class="section-title">AI 帶來質的飛躍</h2>
+      <p class="section-lead">基於實際測試數據的對比</p>
+      <div class="gold-divider"></div>
+      <div class="compare-wrap">
+        <div class="compare-row" data-stagger style="--stagger-i:0">
+          <span class="compare-label">發票識別與分類</span>
+          <span class="compare-before">5 分鐘/張</span><span class="compare-arrow-sym">→</span>
+          <span class="compare-after">10 秒/張</span><span class="compare-mult">30×</span>
+        </div>
+        <div class="compare-row" data-stagger style="--stagger-i:1">
+          <span class="compare-label">月度報表生成</span>
+          <span class="compare-before">1–2 天</span><span class="compare-arrow-sym">→</span>
+          <span class="compare-after">即時生成</span><span class="compare-mult">∞</span>
+        </div>
+        <div class="compare-row" data-stagger style="--stagger-i:2">
+          <span class="compare-label">銀行對賬</span>
+          <span class="compare-before">半天手動比對</span><span class="compare-arrow-sym">→</span>
+          <span class="compare-after">自動匹配 + 覆核</span><span class="compare-mult">10×</span>
+        </div>
+        <div class="compare-row" data-stagger style="--stagger-i:3">
+          <span class="compare-label">月結會計成本</span>
+          <span class="compare-before">HK$2,000–5,000</span><span class="compare-arrow-sym">→</span>
+          <span class="compare-after">HK$200–500</span><span class="compare-mult">10×</span>
+        </div>
+      </div>
+      <div class="market-stats" data-stagger style="--stagger-i:4">
+        <div class="market-num" id="market-counter">800,000+</div>
+        <div class="market-sub">大灣區中小企業市場規模</div>
+        <div class="market-tags">
+          <span class="market-tag">Hong Kong</span><span class="market-tag">Shenzhen</span>
+          <span class="market-tag">Guangzhou</span><span class="market-tag">Dongguan</span>
+          <span class="market-tag">Foshan</span>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-next" data-target="s6" title="下一頁"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></div>
+  </section>
+
+  <div class="section-transition light-to-dark" style="background:linear-gradient(180deg, #F8F6F2 0%, var(--navy-900) 60%, var(--navy-980) 100%);"></div>
+
+  <!-- S6 End -->
+  <section class="s6-end" id="s6">
+    <div class="end-glow"></div>
+    <div class="bg-noise"></div>
+    <div class="end-content" data-reveal>
+      <div class="end-logo">SmartLedger<br><span class="gold">帳智通</span></div>
+      <div class="end-tagline" id="endTagline">讓每一家企業，都擁有自己的智能賬本</div>
+      <div class="end-info" data-stagger style="--stagger-i:1">
+        <p class="info-label">NOVA 2026 · Track 3: Business Efficiency</p>
+        <div class="info-row"><span class="info-icon">▸</span><span>HKUST Business School CTBE × Tencent Research Institute</span></div>
+        <div class="info-row"><span class="info-icon">▸</span><span>SmartLedger © 2026</span></div>
+      </div>
+      <div class="end-decoration"></div>
+    </div>
+    <div class="scroll-next" data-target="s1" title="回到頂部"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></div>
+  </section>
+
+</div><!-- /landing-panel -->
+
+<!-- ══════════════════════════════════════════
+     RIGHT PANEL — APP VIEWER
+     ══════════════════════════════════════════ -->
+<div class="app-panel" id="appPanel">
+  <div class="page-indicator" id="pageIndicator"></div>
+  <div class="browser-window">
+    <div class="browser-toolbar">
+      <div class="browser-dots">
+        <span class="browser-dot bd-red"></span>
+        <span class="browser-dot bd-yellow"></span>
+        <span class="browser-dot bd-green"></span>
+      </div>
+      <div class="browser-address">
+        <span class="addr-prefix">https://</span><span>smartledger.app</span><span class="addr-path" id="addrPath">/dashboard</span>
+      </div>
+    </div>
+    <div class="browser-iframe-wrap">
+      <iframe id="appIframe" src="http://localhost:3000/dashboard" title="SmartLedger App"></iframe>
+    </div>
+  </div>
+  <div class="app-page-label" id="pageLabel">Dashboard</div>
+</div>
+
+</div><!-- /app-container -->
+
+<script>
+(function() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.querySelectorAll('[data-reveal]').forEach(el => el.classList.add('is-revealed'));
+    document.querySelectorAll('[data-stagger]').forEach((el, i) => { el.style.setProperty('--stagger-i', String(i)); el.classList.add('stagger-in'); });
+    return;
+  }
+
+  /* ── HERO PARTICLES ── */
+  const pc = document.getElementById('heroParticles');
+  if (pc) {
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'hero-particle';
+      p.style.left = Math.random() * 100 + '%';
+      p.style.top = Math.random() * 100 + '%';
+      p.style.animationDuration = (8 + Math.random() * 10) + 's';
+      p.style.animationDelay = Math.random() * 8 + 's';
+      p.style.width = (1 + Math.random() * 1.5) + 'px';
+      p.style.height = p.style.width;
+      p.style.opacity = (0.15 + Math.random() * 0.4);
+      pc.appendChild(p);
+    }
+  }
+
+  /* ── REVEAL OBSERVER ── */
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-revealed');
+        const staggers = entry.target.querySelectorAll('[data-stagger]');
+        staggers.forEach((el, i) => {
+          el.style.setProperty('--stagger-i', String(i));
+          const slide = el.getAttribute('data-slide');
+          if (slide === 'left') {
+            el.style.animationName = 'slideInLeft';
+            el.style.animationDuration = '0.6s';
+            el.style.animationFillMode = 'forwards';
+            el.style.animationDelay = (i * 90) + 'ms';
+          } else if (slide === 'right') {
+            el.style.animationName = 'slideInRight';
+            el.style.animationDuration = '0.6s';
+            el.style.animationFillMode = 'forwards';
+            el.style.animationDelay = (i * 90) + 'ms';
+          } else {
+            el.classList.add('stagger-in');
+          }
+        });
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('[data-reveal]').forEach(el => revealObserver.observe(el));
+
+  /* ── COUNTERS ── */
+  const counterObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const el = entry.target;
+        const target = parseInt(el.getAttribute('data-target'));
+        const suffix = el.getAttribute('data-suffix') || '';
+        const start = performance.now();
+        function update(now) {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / 1600, 1);
+          const eased = 1 - Math.pow(1 - progress, 3);
+          el.textContent = Math.floor(target * eased) + suffix;
+          if (progress < 1) requestAnimationFrame(update);
+        }
+        requestAnimationFrame(update);
+        counterObs.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('[data-counter]').forEach(el => counterObs.observe(el));
+
+  /* ── MARKET COUNTER ── */
+  const counterEl = document.getElementById('market-counter');
+  if (counterEl) {
+    let done = false;
+    const mObs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !done) {
+          done = true;
+          const start = performance.now();
+          function up(now) {
+            const t = Math.min((now - start) / 1800, 1);
+            const v = Math.floor(800000 * (1 - Math.pow(1 - t, 3)));
+            counterEl.textContent = v.toLocaleString() + '+';
+            if (t < 1) requestAnimationFrame(up);
+          }
+          requestAnimationFrame(up);
+          mObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.25 });
+    mObs.observe(counterEl);
+  }
+
+  /* ── TYPEWRITER ── */
+  const twEl = document.getElementById('cantoTypewriter');
+  if (twEl) {
+    const text = '"琴日俾左律師五千蚊，月尾要找數"';
+    let typed = false;
+    const twObs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !typed) {
+          typed = true;
+          let i = 0;
+          function type() { if (i <= text.length) { twEl.textContent = text.substring(0, i); i++; setTimeout(type, 55); } }
+          type();
+          twObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+    twObs.observe(twEl);
+  }
+
+  /* ── END TAGLINE STAGGER ── */
+  const tlEl = document.getElementById('endTagline');
+  if (tlEl) {
+    const text = tlEl.textContent;
+    let done = false;
+    const tlObs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !done) {
+          done = true;
+          tlEl.innerHTML = '';
+          [...text].forEach((c, i) => {
+            const s = document.createElement('span');
+            s.textContent = c; s.style.display = 'inline-block';
+            s.style.opacity = '0'; s.style.transform = 'translateY(10px)';
+            s.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+            s.style.transitionDelay = (i * 60) + 'ms';
+            tlEl.appendChild(s);
+          });
+          requestAnimationFrame(() => { tlEl.querySelectorAll('span').forEach(s => { s.style.opacity = '1'; s.style.transform = 'translateY(0)'; }); });
+          tlObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.4 });
+    tlObs.observe(tlEl);
+  }
+
+  /* ── SCROLL NEXT BUTTONS ── */
+  document.querySelectorAll('.scroll-next').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.getAttribute('data-target'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  /* ═══════════════════════════════════════
+     IFRAME SECTION SYNC
+     ═══════════════════════════════════════ */
+  const sectionApps = {
+    s1: { src: '/dashboard', label: 'Dashboard' },
+    s2: { src: '/upload', label: 'Upload Invoice' },
+    s3: { src: '/reports', label: 'Financial Reports' },
+    s4: { src: '/kg-demo', label: 'Knowledge Graph' },
+    s5: { src: '/reports', label: 'Financial Reports' },
+    s6: { src: '/dashboard', label: 'Dashboard' },
+  };
+
+  const appIframe = document.getElementById('appIframe');
+  const addrPath = document.getElementById('addrPath');
+  const pageLabel = document.getElementById('pageLabel');
+  const sections = ['s1','s2','s3','s4','s5','s6'].map(id => document.getElementById(id));
+  let currentSection = 's1';
+
+  const syncObserver = new IntersectionObserver((entries) => {
+    let best = null;
+    let bestRatio = 0;
+    entries.forEach(e => {
+      if (e.isIntersecting && e.intersectionRatio > bestRatio) {
+        bestRatio = e.intersectionRatio;
+        best = e.target;
+      }
+    });
+    entries.forEach(e => { if (e.target !== best) e.isIntersecting = false; });
+
+    if (best) {
+      const id = best.id;
+      if (id !== currentSection && sectionApps[id]) {
+        currentSection = id;
+        const cfg = sectionApps[id];
+        const baseUrl = 'http://localhost:3000';
+        appIframe.src = baseUrl + cfg.src;
+        addrPath.textContent = cfg.src;
+        pageLabel.textContent = cfg.label;
+      }
+    }
+  }, { threshold: [0.2, 0.5, 0.8] });
+
+  sections.forEach(s => { if (s) syncObserver.observe(s); });
+
+})();
+</script>
+
+</body>
+</html>
